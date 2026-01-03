@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('sender_id')->nullable();
             $table->foreignId('receiver_id')->nullable();
             $table->decimal('amount', 10, 2);
-            $table->enum('type',['send', 'receive','topup']); // send, receive, topup
+            $table->enum('type',['send', 'receive','topup','transfer']); // send, receive, topup
             $table->timestamps();
         });
     }

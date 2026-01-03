@@ -15,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->group('api', [
             
-            'throttle:api',
+            /* 'throttle:api', */
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
     })
