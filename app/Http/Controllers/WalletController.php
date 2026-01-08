@@ -20,7 +20,7 @@ class WalletController extends Controller
 
         return DB::transaction(function () use ($request, $user) {
 
-            // 🔍 تحقق من وجود عملية حديثة (آخر 5 ثواني)
+           
             $exists = Transaction::where('receiver_id', $user->id)
                 ->where('type', 'topup')
                 ->where('created_at', '>=', now()->subSeconds(5))
@@ -32,14 +32,14 @@ class WalletController extends Controller
                 ], 429);
             }
 
-            // 🔒 قفل الصف لمنع السباق (Race Condition)
+            
             $user = User::where('id', $user->id)->lockForUpdate()->first();
 
-            // 💰 تحديث الرصيد
+            
             $user->balance += $request->amount;
             $user->save();
 
-            // 🧾 تسجيل العملية
+            
             Transaction::create([
                 'receiver_id' => $user->id,
                 'amount' => $request->amount,
@@ -78,7 +78,7 @@ class WalletController extends Controller
                 return response()->json(['error'=>'Insufficient balance'],400);
             }
 
-            // ✅ إضافة التحقق من التحويل المكرر هنا
+            
             $existing = Transaction::where('sender_id', $sender->id)
                 ->where('receiver_id', $receiver->id)
                 ->where('amount', $request->amount)
@@ -89,14 +89,14 @@ class WalletController extends Controller
                 return response()->json(['error'=>'Duplicate transfer detected'], 400);
             }
 
-            // خصم الرصيد وتحويله
+            
             $sender->balance -= $request->amount;
             $receiver->balance += $request->amount;
 
             $sender->save();
             $receiver->save();
 
-            // إنشاء السجلات
+            
             Transaction::create([
                 'sender_id'=>$sender->id,
                 'receiver_id'=>$receiver->id,
@@ -117,9 +117,9 @@ class WalletController extends Controller
         ->orderBy('created_at', 'desc')
         ->get();
 
-        return response()->json(['success'=>true,'Transaction'=>$transactions]); // ✅ Array مباشر
+        return response()->json(['success'=>true,'Transaction'=>$transactions]); 
        
-        //return response()->json(['success'=>true,'Transaction'=>$Transaction]);
+        
     }
     
     public function wallet(Request $request){
