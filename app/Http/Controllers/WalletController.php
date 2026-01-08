@@ -7,25 +7,51 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\DB;
 class WalletController extends Controller
 {
-    public function topup(Request $request) {
+    public function topup(Request $request)
+    {
         $request->validate([
             'amount' => 'required|numeric|min:1',
         ]);
+
         $user = auth()->user();
-        $user->balance += $request->amount;
-        $user->save();
 
-        Transaction::create([
-            'receiver_id'=>$user->id,
-            'amount'=>$request->amount,
-            'type'=>'topup'
-        ]);
+        return DB::transaction(function () use ($request, $user) {
 
-        return response()->json(['balance'=>$user->balance]);
+            // 🔍 تحقق من وجود عملية حديثة (آخر 5 ثواني)
+            $exists = Transaction::where('receiver_id', $user->id)
+                ->where('type', 'topup')
+                ->where('created_at', '>=', now()->subSeconds(5))
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'error' => 'Duplicate topup detected'
+                ], 429);
+            }
+
+            // 🔒 قفل الصف لمنع السباق (Race Condition)
+            $user = User::where('id', $user->id)->lockForUpdate()->first();
+
+            // 💰 تحديث الرصيد
+            $user->balance += $request->amount;
+            $user->save();
+
+            // 🧾 تسجيل العملية
+            Transaction::create([
+                'receiver_id' => $user->id,
+                'amount' => $request->amount,
+                'type' => 'topup'
+            ]);
+
+            return response()->json([
+                'balance' => $user->balance
+            ]);
+        });
     }
+    
     
     public function transfer(Request $request) {
         try {
@@ -101,12 +127,12 @@ class WalletController extends Controller
 
     
 
-    return response()->json([
-        'id' => $user->id,
-        'name' => $user->name,
-        'email' => $user->email,
-        'balance' => $user->balance
-    ]);
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'balance' => $user->balance
+        ]);
     }
     public function getUser(){
          return response()->json(auth()->user());
